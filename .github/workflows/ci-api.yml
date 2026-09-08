@@ -82,19 +82,3 @@ jobs:
               echo "::warning::docs/api/openapi.json 스냅샷이 최신이 아닙니다. 갱신 후 커밋하세요."
             fi
           fi
-
-  secret-scan:
-    name: Secret Scan
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    defaults:
-      run:
-        working-directory: .
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

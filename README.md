@@ -184,6 +184,29 @@ main      ← 항상 배포 가능 (직접 push 금지)
 브랜치명: `<type>/<epic>-<kebab-summary>` · 커밋: [Conventional Commits](https://www.conventionalcommits.org/)
 · 머지: Squash · PR 400줄 이내 권장
 
+### 브랜치 보호
+
+```bash
+brew install gh && gh auth login
+./scripts/setup-branch-protection.sh
+```
+
+| 규칙 | main | develop |
+|---|---|---|
+| PR 없이 직접 push | 불가 | 불가 |
+| required status check | `PR Guard` | `PR Guard` |
+| 최신 base 요구(strict) | 예 | 아니오 |
+| 선형 히스토리 | 강제 | 강제 |
+| force push · 브랜치 삭제 | 금지 | 금지 |
+| 대화(리뷰 코멘트) 해결 | 필수 | 선택 |
+
+> 승인 수는 **0**입니다. 1인 프로젝트에서는 본인 PR을 스스로 승인할 수 없어
+> 1로 두면 admin 우회 없이 머지가 불가능해집니다. 협업자가 생기면 스크립트에서 올립니다.
+>
+> required check로 `PR Guard`만 지정한 이유: 나머지 CI는 path 필터가 걸려 있어
+> 해당 경로를 건드리지 않은 PR에서는 아예 실행되지 않고, 그런 체크를 required로 두면
+> PR이 영원히 pending 상태로 막힙니다.
+
 ### 진행 상황
 
 - [x] **W1** 기반 구축 — 모노레포 구조, Docker Compose, CI, 템플릿

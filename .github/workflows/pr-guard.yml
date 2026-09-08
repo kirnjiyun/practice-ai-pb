@@ -1,0 +1,85 @@
+name: PR Guard
+
+# 모든 PR 에서 항상 실행되는 유일한 워크플로.
+# 다른 CI 는 path 필터가 걸려 있어 특정 PR 에서는 아예 실행되지 않으므로,
+# 브랜치 보호의 required status check 는 이 워크플로를 기준으로 삼는다.
+
+on:
+  pull_request:
+    branches: [main, develop]
+    types: [opened, synchronize, reopened, edited]
+
+concurrency:
+  group: pr-guard-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  guard:
+    name: PR Guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - run: pip install pyyaml
+
+      # 1) 워크플로/컴포즈/평가셋 YAML 문법 검증
+      - name: Validate YAML
+        run: |
+          python - <<'PY'
+          import sys, yaml, pathlib
+          bad = []
+          for p in sorted(pathlib.Path('.').rglob('*.y*ml')):
+              if '.git/' in str(p):
+                  continue
+              try:
+                  yaml.safe_load(p.read_text(encoding='utf-8'))
+              except Exception as e:
+                  bad.append((p, e))
+          for p, e in bad:
+              print(f"::error file={p}::YAML 파싱 실패 — {e}")
+          sys.exit(1 if bad else 0)
+          PY
+
+      # 2) 시크릿이 커밋되지 않았는지
+      - name: No committed secrets
+        run: |
+          fail=0
+          if git ls-files --error-unmatch .env >/dev/null 2>&1; then
+            echo "::error::.env 파일이 커밋되어 있습니다. 즉시 제거하세요."
+            fail=1
+          fi
+          for f in $(git ls-files '*.pem' '*.key' '*.p12' '*.jks'); do
+            echo "::error file=$f::인증서/키 파일이 커밋되어 있습니다."
+            fail=1
+          done
+          exit $fail
+
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 3) PR 제목이 Conventional Commits 형식인지 (squash merge 시 커밋 메시지가 된다)
+      - name: Conventional PR title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          pattern='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-zA-Z0-9._/-]+\))?!?: .+'
+          if echo "$PR_TITLE" | grep -qE "$pattern"; then
+            echo "OK: $PR_TITLE"
+          else
+            echo "::error::PR 제목이 Conventional Commits 형식이 아닙니다."
+            echo "현재: $PR_TITLE"
+            echo "형식: <type>(<scope>): <설명>"
+            echo "예시: feat(consult): SSE 스트리밍 엔드포인트 추가"
+            echo "type: feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
+            exit 1
+          fi
