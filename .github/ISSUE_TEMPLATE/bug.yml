@@ -1,0 +1,47 @@
+name: 버그 (Bug)
+description: 동작 오류 보고
+title: "fix(<scope>): "
+labels: ["type:fix"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: 증상
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: 재현 절차
+      value: |
+        1. 
+        2. 
+        3. 
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 기대 동작 / 실제 동작
+    validations:
+      required: true
+
+  - type: input
+    id: request_id
+    attributes:
+      label: requestId
+      description: 화면 에러 카드 또는 응답 헤더 X-Request-Id 값. 로그 추적에 사용합니다.
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: 심각도
+      options:
+        - "S1 — 보안/권한/데이터 유출"
+        - "S2 — 핵심 기능 불가"
+        - "S3 — 일부 기능 오류"
+        - "S4 — 표시/문구"
+    validations:
+      required: true

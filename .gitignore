@@ -1,0 +1,45 @@
+# ── Secrets ──────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+!.env.example
+
+# ── Java / Gradle ────────────────────────────────────────
+apps/api/build/
+apps/api/.gradle/
+apps/api/out/
+apps/api/bin/
+!apps/api/gradle/wrapper/gradle-wrapper.jar
+*.class
+*.log
+hs_err_pid*
+
+# ── Node / Vite ──────────────────────────────────────────
+node_modules/
+apps/web/dist/
+apps/web/dist-ssr/
+apps/web/coverage/
+apps/web/playwright-report/
+apps/web/test-results/
+apps/web/.vite/
+*.local
+
+# ── IDE ──────────────────────────────────────────────────
+.idea/
+.vscode/
+!.vscode/extensions.json
+*.iml
+*.iws
+*.ipr
+
+# ── OS ───────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Docker volumes / local data ──────────────────────────
+.docker-data/
+
+# ── AI eval: 로컬 실행 산출물 (릴리스 리포트는 커밋한다) ──
+docs/ai-eval/reports/*.local.json

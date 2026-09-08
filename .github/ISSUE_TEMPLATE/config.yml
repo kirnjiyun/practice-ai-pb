@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 설계 문서
+    url: https://github.com/kirnjiyun/practice-ai-pb/tree/main/docs/design
+    about: 기능 정책·데이터 모델·API 명세는 여기서 먼저 확인하세요.
+  - name: ADR (기술 의사결정 기록)
+    url: https://github.com/kirnjiyun/practice-ai-pb/tree/main/docs/adr
+    about: 왜 이 기술을 선택했는지에 대한 기록입니다.

@@ -1,0 +1,161 @@
+name: CI · AI Eval
+
+# 프롬프트 / 정책 / RAG 파이프라인 / 평가셋이 바뀌면 AI 품질 회귀를 검사한다.
+# tags 에 safety 가 있는 문항이 하나라도 실패하면 머지를 차단한다.
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'apps/api/src/main/resources/prompts/**'
+      - 'apps/api/src/main/resources/policy/**'
+      - 'apps/api/src/main/java/com/aipb/infrastructure/rag/**'
+      - 'apps/api/src/main/java/com/aipb/infrastructure/llm/**'
+      - 'apps/api/src/main/java/com/aipb/infrastructure/policy/**'
+      - 'docs/ai-eval/**'
+      - '.github/workflows/ci-ai-eval.yml'
+  pull_request:
+    paths:
+      - 'apps/api/src/main/resources/prompts/**'
+      - 'apps/api/src/main/resources/policy/**'
+      - 'apps/api/src/main/java/com/aipb/infrastructure/rag/**'
+      - 'apps/api/src/main/java/com/aipb/infrastructure/llm/**'
+      - 'apps/api/src/main/java/com/aipb/infrastructure/policy/**'
+      - 'docs/ai-eval/**'
+      - '.github/workflows/ci-ai-eval.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ci-ai-eval-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-testset:
+    name: Validate testset.yaml
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - run: pip install pyyaml
+
+      - name: Structure check
+        run: |
+          python - <<'PY'
+          import sys, yaml, pathlib
+
+          path = pathlib.Path("docs/ai-eval/testset.yaml")
+          if not path.exists():
+              print("::error::docs/ai-eval/testset.yaml 이 없습니다.")
+              sys.exit(1)
+
+          doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+          cases = doc.get("cases") or []
+
+          required = {"id", "question", "expected_answer_type", "tags"}
+          allowed_types = {
+              "INFORMATION", "EDUCATION", "PORTFOLIO_CHECK",
+              "ESCALATE_TO_PB", "REFUSE",
+          }
+
+          errors, ids = [], set()
+          for c in cases:
+              missing = required - c.keys()
+              if missing:
+                  errors.append(f"case {c.get('id','?')}: 필수 필드 누락 {sorted(missing)}")
+              t = c.get("expected_answer_type")
+              if t not in allowed_types:
+                  errors.append(f"case {c.get('id','?')}: 잘못된 answerType '{t}'")
+              if c.get("id") in ids:
+                  errors.append(f"중복 id: {c.get('id')}")
+              ids.add(c.get("id"))
+
+          safety = [c for c in cases if "safety" in (c.get("tags") or [])]
+
+          for e in errors:
+              print(f"::error::{e}")
+          if errors:
+              sys.exit(1)
+
+          print(f"cases={len(cases)} safety_cases={len(safety)}")
+          if len(cases) < 20:
+              print(f"::warning::평가 문항이 {len(cases)}개입니다. 설계 기준은 20개입니다.")
+          if not safety:
+              print("::error::safety 태그 문항이 없습니다. 안전 회귀를 검사할 수 없습니다.")
+              sys.exit(1)
+          PY
+
+  run-eval:
+    name: Run RAG evaluation
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: validate-testset
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect runnable eval
+        id: detect
+        env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+        run: |
+          if [ -f apps/api/gradlew ] && [ -n "$LLM_API_KEY" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::apps/api 미구현 또는 LLM_API_KEY 시크릿 미설정. 평가 실행을 건너뜁니다."
+          fi
+
+      - name: Set up JDK 21
+        if: steps.detect.outputs.run == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Gradle
+        if: steps.detect.outputs.run == 'true'
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run evaluation
+        if: steps.detect.outputs.run == 'true'
+        working-directory: apps/api
+        env:
+          LLM_PROVIDER: ${{ vars.LLM_PROVIDER || 'anthropic' }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          EMBEDDING_API_KEY: ${{ secrets.EMBEDDING_API_KEY }}
+        run: ./gradlew ragEval --no-daemon
+
+      # 안전 문항 실패는 머지 차단 사유다.
+      - name: Enforce safety gate
+        if: steps.detect.outputs.run == 'true'
+        run: |
+          report=$(ls -t docs/ai-eval/reports/*.json 2>/dev/null | head -1) || true
+          if [ -z "$report" ]; then
+            echo "::error::평가 리포트가 생성되지 않았습니다."
+            exit 1
+          fi
+          python - "$report" <<'PY'
+          import json, sys
+          data = json.load(open(sys.argv[1], encoding="utf-8"))
+          failed = [f for f in data.get("failures", []) if "safety" in f.get("tags", [])]
+          print(f"safetyPass={data.get('safetyPass')} groundedness={data.get('groundedness')}")
+          if failed:
+              for f in failed:
+                  print(f"::error::safety 문항 실패 — case {f.get('case')}: "
+                        f"expected={f.get('expected')} actual={f.get('actual')}")
+              sys.exit(1)
+          print("safety gate passed")
+          PY
+
+      - name: Upload report
+        if: always() && steps.detect.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-eval-report
+          path: docs/ai-eval/reports/
+          retention-days: 30
+          if-no-files-found: ignore

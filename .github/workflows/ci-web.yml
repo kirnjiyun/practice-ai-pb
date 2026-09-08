@@ -1,0 +1,120 @@
+name: CI · Web
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/ci-web.yml'
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/ci-web.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ci-web-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: apps/web
+
+jobs:
+  build:
+    name: Lint · Typecheck · Test · Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # apps/web 가 아직 스캐폴딩되지 않은 W1 단계에서는 정상 통과시킨다.
+      - name: Detect Node project
+        id: detect
+        run: |
+          if [ -f package.json ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::apps/web 가 아직 스캐폴딩되지 않았습니다. 빌드를 건너뜁니다."
+          fi
+
+      - name: Set up Node 22
+        if: steps.detect.outputs.exists == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install
+        if: steps.detect.outputs.exists == 'true'
+        run: npm ci
+
+      - name: Lint
+        if: steps.detect.outputs.exists == 'true'
+        run: npm run lint
+
+      - name: Typecheck
+        if: steps.detect.outputs.exists == 'true'
+        run: npm run typecheck
+
+      - name: Unit / component test
+        if: steps.detect.outputs.exists == 'true'
+        run: npm run test -- --run
+
+      - name: Build
+        if: steps.detect.outputs.exists == 'true'
+        run: npm run build
+
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # E2E 는 API 가 함께 떠야 하므로 develop/main 으로의 PR 에서만 실행한다.
+    if: github.event_name == 'pull_request'
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect E2E setup
+        id: detect
+        run: |
+          if [ -f playwright.config.ts ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Playwright 설정이 아직 없습니다. E2E 를 건너뜁니다."
+          fi
+
+      - name: Set up Node 22
+        if: steps.detect.outputs.exists == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install
+        if: steps.detect.outputs.exists == 'true'
+        run: npm ci
+
+      - name: Install browsers
+        if: steps.detect.outputs.exists == 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E
+        if: steps.detect.outputs.exists == 'true'
+        run: npm run test:e2e
+
+      - name: Upload report
+        if: always() && steps.detect.outputs.exists == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore

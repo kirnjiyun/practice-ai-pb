@@ -1,0 +1,67 @@
+name: 기능 (Feature)
+description: 새 기능 또는 개선 작업
+title: "feat(<scope>): "
+labels: ["type:feat"]
+body:
+  - type: textarea
+    id: why
+    attributes:
+      label: 배경 / 왜 필요한가
+      description: 이 작업이 없으면 사용자에게 어떤 문제가 남는지 한두 문장으로 적습니다.
+      placeholder: |
+        예) 성향 진단 결과가 없으면 AI 상담이 일반 챗봇과 동일해져 개인화 가치가 사라진다.
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: 작업 내용
+      value: |
+        - [ ] 
+        - [ ] 
+    validations:
+      required: true
+
+  - type: textarea
+    id: dod
+    attributes:
+      label: 완료 조건 (DoD)
+      value: |
+        - [ ] 단위 테스트 작성 (도메인 로직은 필수)
+        - [ ] 소유권/권한 검증 테스트 (사용자 리소스를 다루는 경우)
+        - [ ] API 문서 갱신 (@Schema, openapi.json 스냅샷)
+        - [ ] 에러 코드 정의 및 문서 반영
+        - [ ] 실패 시 동작(폴백/에러 UX) 정의
+    validations:
+      required: true
+
+  - type: input
+    id: design
+    attributes:
+      label: 관련 설계 문서
+      placeholder: "docs/design/04-functional-spec.md #FR-02"
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: 영역
+      options: [be, fe, infra, ai, docs]
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 우선순위 (MoSCoW)
+      options: [must, should, could]
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: compliance
+    attributes:
+      label: 규제 확인
+      options:
+        - label: 이 작업은 매매 실행 · 투자일임 · 개별 종목 권유에 해당하지 않는다
+        - label: 해당 여부가 애매하다 (→ `needs-compliance-review` 라벨을 붙이고 범위에서 제외한다)

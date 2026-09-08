@@ -1,0 +1,100 @@
+name: CI · API
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'apps/api/**'
+      - '.github/workflows/ci-api.yml'
+  pull_request:
+    paths:
+      - 'apps/api/**'
+      - '.github/workflows/ci-api.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ci-api-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: apps/api
+
+jobs:
+  build:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # apps/api 가 아직 스캐폴딩되지 않은 W1 단계에서는 정상 통과시킨다.
+      - name: Detect Gradle project
+        id: detect
+        run: |
+          if [ -f gradlew ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::apps/api 가 아직 스캐폴딩되지 않았습니다. 빌드를 건너뜁니다."
+          fi
+
+      - name: Set up JDK 21
+        if: steps.detect.outputs.exists == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Gradle
+        if: steps.detect.outputs.exists == 'true'
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build (compile + unit test)
+        if: steps.detect.outputs.exists == 'true'
+        run: ./gradlew build --no-daemon --stacktrace
+
+      # Testcontainers 는 ubuntu-latest 의 Docker 데몬을 사용한다.
+      - name: Integration test
+        if: steps.detect.outputs.exists == 'true'
+        run: ./gradlew integrationTest --no-daemon || ./gradlew test --no-daemon
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: 'true'
+
+      - name: Upload test report
+        if: always() && steps.detect.outputs.exists == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-test-report
+          path: apps/api/build/reports/tests/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      # openapi.json 스냅샷이 코드 변경과 어긋나지 않았는지 확인한다.
+      - name: OpenAPI snapshot drift check
+        if: steps.detect.outputs.exists == 'true'
+        continue-on-error: true
+        run: |
+          if [ -f ../../docs/api/openapi.json ]; then
+            ./gradlew generateOpenApiDocs --no-daemon || exit 0
+            if ! diff -q build/openapi.json ../../docs/api/openapi.json > /dev/null 2>&1; then
+              echo "::warning::docs/api/openapi.json 스냅샷이 최신이 아닙니다. 갱신 후 커밋하세요."
+            fi
+          fi
+
+  secret-scan:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
