@@ -24,6 +24,14 @@ REQUIRED_CHECK="PR Guard"
 # 협업자가 생기면 아래 값을 1 로 올린다.
 REQUIRED_APPROVALS=0
 
+# 관리자(저장소 소유자)에게도 규칙을 강제한다.
+# false 로 두면 소유자의 push 가 "Bypassed rule violations" 로 그냥 통과해
+# 보호 규칙이 경고 문구에 그친다.
+# 긴급 상황에서는 아래로 잠시 껐다가 되돌린다:
+#   gh api -X DELETE repos/$REPO/branches/main/protection/enforce_admins
+#   gh api -X POST   repos/$REPO/branches/main/protection/enforce_admins
+ENFORCE_ADMINS=true
+
 command -v gh >/dev/null 2>&1 || {
   echo "gh CLI 가 필요합니다:  brew install gh && gh auth login" >&2
   exit 1
@@ -46,7 +54,7 @@ gh api -X PUT "repos/$REPO/branches/main/protection" \
     "strict": true,
     "contexts": ["$REQUIRED_CHECK"]
   },
-  "enforce_admins": false,
+  "enforce_admins": $ENFORCE_ADMINS,
   "required_pull_request_reviews": {
     "required_approving_review_count": $REQUIRED_APPROVALS,
     "dismiss_stale_reviews": true,
@@ -75,7 +83,7 @@ gh api -X PUT "repos/$REPO/branches/develop/protection" \
     "strict": false,
     "contexts": ["$REQUIRED_CHECK"]
   },
-  "enforce_admins": false,
+  "enforce_admins": $ENFORCE_ADMINS,
   "required_pull_request_reviews": {
     "required_approving_review_count": 0,
     "dismiss_stale_reviews": false,
@@ -115,6 +123,7 @@ gh api "repos/$REPO/branches/main/protection" \
     required_checks: .required_status_checks.contexts,
     strict: .required_status_checks.strict,
     approvals: .required_pull_request_reviews.required_approving_review_count,
+    enforce_admins: .enforce_admins.enabled,
     linear_history: .required_linear_history.enabled,
     force_push: .allow_force_pushes.enabled,
     conversation_resolution: .required_conversation_resolution.enabled

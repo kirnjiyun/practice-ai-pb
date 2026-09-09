@@ -199,9 +199,14 @@ brew install gh && gh auth login
 | 선형 히스토리 | 강제 | 강제 |
 | force push · 브랜치 삭제 | 금지 | 금지 |
 | 대화(리뷰 코멘트) 해결 | 필수 | 선택 |
+| 관리자에게도 강제 | 예 | 예 |
 
 > 승인 수는 **0**입니다. 1인 프로젝트에서는 본인 PR을 스스로 승인할 수 없어
 > 1로 두면 admin 우회 없이 머지가 불가능해집니다. 협업자가 생기면 스크립트에서 올립니다.
+>
+> `enforce_admins`는 **true**입니다. false로 두면 저장소 소유자의 push가
+> `Bypassed rule violations`로 그냥 통과해 보호 규칙이 경고 문구에 그칩니다.
+> 긴급 시에는 `gh api -X DELETE .../protection/enforce_admins`로 잠시 껐다가 되돌립니다.
 >
 > required check로 `PR Guard`만 지정한 이유: 나머지 CI는 path 필터가 걸려 있어
 > 해당 경로를 건드리지 않은 PR에서는 아예 실행되지 않고, 그런 체크를 required로 두면
