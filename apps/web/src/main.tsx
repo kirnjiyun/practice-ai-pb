@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { createRoot } from 'react-dom/client';
 import { auth, type User } from './auth';
 import './style.css';
+import { Portfolio } from './Portfolio';
 
 function App() {
   const [mode, setMode] = useState<'login' | 'register'>('login');
@@ -28,7 +29,7 @@ function App() {
   }
   return <main>
     <header><a className="brand" href="/">AI <strong>PB</strong><span>PERSONAL FINANCE PARTNER</span></a><span className="badge">PORTFOLIO DEMO</span></header>
-    <div className="layout"><section className="intro">
+    <div className={user ? 'layout account-layout' : 'layout'}><section className="intro">
       <p className="eyebrow">나를 이해하는 자산관리의 시작</p>
       <h1>좋은 상담은<br/><em>좋은 준비</em>에서.</h1>
       <p className="description">흩어진 자산과 막연한 목표를 정리하고,<br/>나에게 필요한 질문을 함께 찾아갑니다.</p>
@@ -54,6 +55,7 @@ function App() {
       </>}
       {error && <p role="alert" className="error">{error}</p>}{notice && <p role="status" className="notice">{notice}</p>}
     </section></div>
+    {user && <Portfolio key={user.id}/>}
     <footer>AI PB는 가상 데이터를 사용하는 학습용 데모입니다. 실제 계좌·금융상품과 연동되지 않으며 투자 권유나 자문을 제공하지 않습니다.</footer>
   </main>;
 }

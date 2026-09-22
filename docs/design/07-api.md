@@ -21,3 +21,22 @@ Base URL: `http://localhost:8080`. 요청과 응답은 JSON이다.
 PB/관리자 `/me`는 현재 권한 확인용이며 고객 목록/문서 관리 API는 아직 구현하지 않았다.
 
 OpenAPI 및 Swagger UI는 후속 구현 예정이다.
+
+## W3 투자성향·자산 API
+
+아래 모든 API는 Bearer 인증이 필요하며 본인 데이터만 처리한다.
+
+| Method | Path | 요청/결과 |
+|---|---|---|
+| GET | `/api/investment-profile/questionnaire` | version, questions(id/title/options) |
+| POST | `/api/investment-profile` | `{questionnaireVersion:"demo-v1", answers:[1,2,3,4,5]}` → 201 진단 결과 |
+| GET | `/api/investment-profile` | 최신 결과 또는 204 |
+| GET | `/api/assets` | items, totalAssets, totalDebt, netAssets, currency(KRW) |
+| GET | `/api/assets/{id}` | 본인 자산 1건 |
+| POST | `/api/assets` | name, type, amount → 201 자산 |
+| PUT | `/api/assets/{id}` | name, type, amount, version → 갱신 자산 |
+| DELETE | `/api/assets/{id}?version=0` | 일치하는 버전 삭제 → 204 |
+
+진단 결과는 id, questionnaireVersion, answers, score, riskLevel, assessedAt, expiresAt,
+expired를 포함한다. 자산 응답은 id, name, type, amount, version이다.
+유효한 종류/범위/오류 처리 정책은 [기능 명세](04-functional-spec.md)를 따른다.

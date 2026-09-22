@@ -7,6 +7,31 @@ const response = (body: object, status = 200) => new Response(JSON.stringify(bod
 afterEach(() => vi.unstubAllGlobals());
 
 describe('authentication client', () => {
+  it('replays an asset update with its original body and renewed token', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(response(tokens))
+      .mockResolvedValueOnce(response({}, 401))
+      .mockResolvedValueOnce(response({ ...tokens, accessToken: 'access-2' }))
+      .mockResolvedValueOnce(response({ id: 'asset', version: 1 }));
+    vi.stubGlobal('fetch', fetch);
+    const auth = new AuthClient(); await auth.login(user.email, 'password');
+    const body = JSON.stringify({ name: '가상 예금', type: 'DEPOSIT', amount: 100, version: 0 });
+    await expect(auth.request('/assets/asset', { method: 'PUT', body })).resolves.toEqual({ id: 'asset', version: 1 });
+    expect(fetch.mock.calls[3][1]).toMatchObject({ method: 'PUT', body, headers: { Authorization: 'Bearer access-2' } });
+  });
+  it('handles empty profile and delete responses without parsing JSON', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(response(tokens)).mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
+    vi.stubGlobal('fetch', fetch);
+    const auth = new AuthClient(); await auth.login(user.email, 'password');
+    await expect(auth.request('/investment-profile')).resolves.toBeUndefined();
+    await expect(auth.request('/assets/asset?version=0', { method: 'DELETE' })).resolves.toBeUndefined();
+  });
+  it('surfaces concurrent-edit conflicts without retrying mutations', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(response(tokens)).mockResolvedValueOnce(response({}, 409));
+    vi.stubGlobal('fetch', fetch);
+    const auth = new AuthClient(); await auth.login(user.email, 'password');
+    await expect(auth.request('/assets/asset?version=0', { method: 'DELETE' })).rejects.toThrow('내용이 변경');
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
   it('retries a protected request after token rotation', async () => {
     const fetch = vi.fn().mockResolvedValueOnce(response(tokens))
       .mockResolvedValueOnce(response({}, 401))
