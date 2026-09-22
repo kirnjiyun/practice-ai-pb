@@ -9,6 +9,7 @@
 # ── Java / Gradle ────────────────────────────────────────
 apps/api/build/
 apps/api/.gradle/
+apps/api/.gradle-local/
 apps/api/out/
 apps/api/bin/
 !apps/api/gradle/wrapper/gradle-wrapper.jar
@@ -18,6 +19,7 @@ hs_err_pid*
 
 # ── Node / Vite ──────────────────────────────────────────
 node_modules/
+apps/web/.npm-cache/
 apps/web/dist/
 apps/web/dist-ssr/
 apps/web/coverage/

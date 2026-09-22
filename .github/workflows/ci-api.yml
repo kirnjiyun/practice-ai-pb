@@ -53,14 +53,10 @@ jobs:
 
       - name: Build (compile + unit test)
         if: steps.detect.outputs.exists == 'true'
-        run: ./gradlew build --no-daemon --stacktrace
+        run: bash gradlew build --no-daemon --stacktrace
 
-      # Testcontainers 는 ubuntu-latest 의 Docker 데몬을 사용한다.
-      - name: Integration test
-        if: steps.detect.outputs.exists == 'true'
-        run: ./gradlew integrationTest --no-daemon || ./gradlew test --no-daemon
-        env:
-          TESTCONTAINERS_RYUK_DISABLED: 'true'
+      # AuthIntegrationTest runs in the standard test task. Never mask failures
+      # with a fallback to a different test task.
 
       - name: Upload test report
         if: always() && steps.detect.outputs.exists == 'true'

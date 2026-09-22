@@ -4,7 +4,7 @@
 #   인프라만 기동      : docker compose up -d
 #   앱까지 전체 기동    : docker compose --profile app up -d --build
 #
-# apps/api, apps/web 코드가 아직 없는 W1 단계에서는 인프라만 기동한다.
+# W2: 앱 프로파일로 인증 API와 웹을 함께 기동할 수 있다.
 # =============================================================================
 
 services:
@@ -103,6 +103,9 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-aipb-minio}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-aipb-minio-secret}
       JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_TTL_MINUTES: ${JWT_ACCESS_TTL_MINUTES:-30}
+      JWT_REFRESH_TTL_DAYS: ${JWT_REFRESH_TTL_DAYS:-14}
+      DEMO_SEED_ENABLED: ${DEMO_SEED_ENABLED:-false}
       AES_KEY: ${AES_KEY}
       HMAC_KEY: ${HMAC_KEY}
       LLM_PROVIDER: ${LLM_PROVIDER:-stub}

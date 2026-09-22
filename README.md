@@ -41,6 +41,10 @@
 
 ## 3. 빠른 시작
 
+현재 **W2 기본 인증 기능**까지 구현되어 있습니다. 회원가입·로그인·토큰 갱신·로그아웃과
+역할별 권한 확인 화면을 사용할 수 있습니다. 자산·목표·AI 상담 등 이후 기능은 설계 목표이며
+아직 구현되지 않았습니다. 상세 현황은 [진행 기록](docs/progress.md)을 참조하세요.
+
 ### 요구 사항
 
 | 항목 | 버전 |
@@ -69,7 +73,7 @@ openssl rand -base64 32   # → AES_KEY, HMAC_KEY
 # 인프라만 기동 (PostgreSQL+pgvector, Redis, MinIO)
 docker compose up -d
 
-# 앱까지 전체 기동  ※ apps/api, apps/web 구현 이후 사용
+# 앱까지 전체 기동 (현재 인증 화면/API)
 docker compose --profile app up -d --build
 ```
 
@@ -77,16 +81,17 @@ docker compose --profile app up -d --build
 |---|---|
 | Web | http://localhost:5173 |
 | API | http://localhost:8080 |
-| Swagger UI | http://localhost:8080/swagger-ui.html *(local 프로파일 전용)* |
+| Swagger UI | 후속 구현 예정 |
 | MinIO Console | http://localhost:9001 |
 | PostgreSQL | `localhost:5432` |
 
-> `LLM_PROVIDER=stub`이 기본값입니다. 실제 API 키 없이도 전체 기능을 확인할 수 있으며,
-> 실제 LLM 호출은 `LLM_PROVIDER`와 `LLM_API_KEY`를 설정한 뒤 사용합니다.
+> 현재 인증 기능은 LLM API 키 없이 사용할 수 있습니다. `LLM_PROVIDER=stub`은
+> 향후 AI 기능을 위한 설정이며 실제 LLM 연결은 아직 구현하지 않았습니다.
 
 ### 데모 계정
 
-시드 데이터 적용 후 사용 가능합니다. (비밀번호 공통: `Demo!2026pw`)
+`.env`에 `SPRING_PROFILES_ACTIVE=local`, `DEMO_SEED_ENABLED=true`를 설정하면 생성됩니다.
+비밀번호 공통: `Demo!2026pw`. **현재 계정/역할만 생성하며 아래 자산·목표·관계는 향후 시드 계획입니다.**
 
 | 계정 | 역할 | 상태 |
 |---|---|---|
@@ -96,7 +101,8 @@ docker compose --profile app up -d --build
 | `pb1@aipb.demo` | PB | user1 · user2 담당 |
 | `admin@aipb.demo` | ADMIN | RAG 문서 6종 승인 완료 |
 
-전체 데모 흐름은 [`docs/demo-script.md`](docs/demo-script.md)를 따라가면 5분 안에 재현됩니다.
+[`docs/demo-script.md`](docs/demo-script.md)는 향후 전체 기능의 데모 시나리오입니다.
+현재는 웹에서 회원가입 → 로그인 → 내 정보/역할 권한 확인 → 로그아웃을 확인할 수 있습니다.
 
 ## 4. 기술 스택
 
@@ -215,7 +221,7 @@ brew install gh && gh auth login
 ### 진행 상황
 
 - [x] **W1** 기반 구축 — 모노레포 구조, Docker Compose, CI, 템플릿
-- [ ] **W2** 인증 · 권한
+- [x] **W2** 기본 인증 · 권한 — API/웹 구현 및 테스트 통과, Docker/PostgreSQL 실행 검증은 남음
 - [ ] **W3** 투자성향 진단 · 자산 관리
 - [ ] **W4** 대시보드 · 위험 규칙 엔진 · 목표 시뮬레이션
 - [ ] **W5** RAG 문서 파이프라인
