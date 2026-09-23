@@ -25,3 +25,14 @@ dependencies {
 }
 tasks.named('test') { useJUnitPlatform() }
 tasks.named('bootJar') { archiveFileName = 'aipb-api.jar' }
+
+// Disposable localhost demo; H2 remains outside the production runtime/JAR.
+tasks.register('bootDemo', JavaExec) {
+    group = 'application'
+    description = 'Run the API with an in-memory database and fictional demo users'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + files('src/demo/resources')
+    mainClass = 'com.aipb.ApiApplication'
+    args '--spring.profiles.active=local,demo'
+    environment 'JWT_SECRET', UUID.randomUUID().toString() + UUID.randomUUID().toString()
+}

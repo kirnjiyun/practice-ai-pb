@@ -41,8 +41,8 @@
 
 ## 3. 빠른 시작
 
-현재 **W2 기본 인증 기능**까지 구현되어 있습니다. 회원가입·로그인·토큰 갱신·로그아웃과
-역할별 권한 확인 화면을 사용할 수 있습니다. 자산·목표·AI 상담 등 이후 기능은 설계 목표이며
+현재 **W3 투자성향 진단·자산 관리**까지 구현되어 있습니다. 회원가입·로그인·토큰 갱신·로그아웃,
+역할별 권한 확인, 5문항 진단, 자산/부채 등록·수정·삭제를 사용할 수 있습니다. 목표·AI 상담 등 이후 기능은 설계 목표이며
 아직 구현되지 않았습니다. 상세 현황은 [진행 기록](docs/progress.md)을 참조하세요.
 
 ### 요구 사항
@@ -54,6 +54,27 @@
 | Node.js | 22+ |
 
 ### 실행
+
+Docker 없이 화면을 확인하려면 터미널 두 개에서 각각 실행합니다. JDK 21과 Node.js 22가 필요합니다.
+
+```powershell
+# 터미널 1 — 임시 DB + 데모 계정 + API
+cd apps/api
+.\gradlew.bat bootDemo
+```
+
+```powershell
+# 터미널 2 — 프론트엔드
+cd apps/web
+npm ci
+npm run dev -- --host 127.0.0.1
+```
+
+[프론트엔드 열기](http://127.0.0.1:5173/) → `user1@aipb.demo` / `Demo!2026pw`로 로그인합니다.
+`bootDemo`는 localhost 전용이며 API를 종료하면 입력 데이터가 사라집니다.
+JWT 키는 실행할 때마다 생성됩니다. H2는 실제 배포 JAR에 포함하지 않습니다.
+
+PostgreSQL을 사용하는 기존 Compose 실행 방식은 아래와 같습니다.
 
 ```bash
 git clone https://github.com/kirnjiyun/practice-ai-pb.git
@@ -91,7 +112,8 @@ docker compose --profile app up -d --build
 ### 데모 계정
 
 `.env`에 `SPRING_PROFILES_ACTIVE=local`, `DEMO_SEED_ENABLED=true`를 설정하면 생성됩니다.
-비밀번호 공통: `Demo!2026pw`. **현재 계정/역할만 생성하며 아래 자산·목표·관계는 향후 시드 계획입니다.**
+비밀번호 공통: `Demo!2026pw`. 새 user1/user2에는 진단과 자산·부채 5건을 생성합니다.
+기존 계정에는 소급 시드하지 않습니다. 아래 목표·경고·담당 관계는 향후 시드 계획입니다.
 
 | 계정 | 역할 | 상태 |
 |---|---|---|
@@ -102,7 +124,7 @@ docker compose --profile app up -d --build
 | `admin@aipb.demo` | ADMIN | RAG 문서 6종 승인 완료 |
 
 [`docs/demo-script.md`](docs/demo-script.md)는 향후 전체 기능의 데모 시나리오입니다.
-현재는 웹에서 회원가입 → 로그인 → 내 정보/역할 권한 확인 → 로그아웃을 확인할 수 있습니다.
+현재는 웹에서 회원가입 → 로그인 → 투자성향 진단 → 자산 등록·수정·삭제 → 로그아웃을 확인할 수 있습니다.
 
 ## 4. 기술 스택
 
@@ -222,7 +244,7 @@ brew install gh && gh auth login
 
 - [x] **W1** 기반 구축 — 모노레포 구조, Docker Compose, CI, 템플릿
 - [x] **W2** 기본 인증 · 권한 — API/웹 구현 및 테스트 통과, Docker/PostgreSQL 실행 검증은 남음
-- [ ] **W3** 투자성향 진단 · 자산 관리
+- [x] **W3** 투자성향 진단 · 자산 관리 — 소유권 검사, 수정 충돌 방지, API/웹 연결
 - [ ] **W4** 대시보드 · 위험 규칙 엔진 · 목표 시뮬레이션
 - [ ] **W5** RAG 문서 파이프라인
 - [ ] **W6** AI 상담 (프롬프트 · 정책 · 스키마 · 폴백)

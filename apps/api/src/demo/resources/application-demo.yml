@@ -1,0 +1,10 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:aipb-demo;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+server:
+  address: 127.0.0.1
+auth:
+  demo-seed: true
+  allowed-origins: http://localhost:5173,http://127.0.0.1:5173

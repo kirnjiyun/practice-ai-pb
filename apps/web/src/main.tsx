@@ -34,7 +34,7 @@ function App() {
       <h1>좋은 상담은<br/><em>좋은 준비</em>에서.</h1>
       <p className="description">흩어진 자산과 막연한 목표를 정리하고,<br/>나에게 필요한 질문을 함께 찾아갑니다.</p>
       <ol><li><b>01</b><div>내 자산 이해하기<small>자산과 투자성향을 한눈에</small></div></li><li><b>02</b><div>목표 구체화하기<small>계획을 세우기 위한 시뮬레이션</small></div></li><li><b>03</b><div>상담 준비하기<small>근거를 확인하며 질문 정리</small></div></li></ol>
-      <p className="planned">자산 진단 · 목표 · AI 상담은 후속 개발 예정입니다.</p>
+      <p className="planned">투자성향 진단·자산 관리를 이용할 수 있습니다. 목표·AI 상담은 개발 예정입니다.</p>
     </section><section className="card" aria-label={user ? '내 계정' : '인증'}>
       {user ? <>
         <p className="eyebrow">MY ACCOUNT</p><h2>반갑습니다.</h2><p className="muted">로그인이 완료되었습니다.</p>
